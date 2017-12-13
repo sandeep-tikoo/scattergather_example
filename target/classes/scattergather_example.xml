@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:scripting="http://www.mulesoft.org/schema/mule/scripting" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" version="EE-3.6.1"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mule/scripting/current/mule-scripting.xsd">
+    <http:listener-config name="HTTP_Listener_Configuration" host="localhost" port="8081" doc:name="HTTP Listener Configuration"/>
+    <flow name="Books">
+        <scripting:component doc:name="sleep">
+            <scripting:script engine="Groovy"><![CDATA[Thread.sleep(600);]]></scripting:script>
+        </scripting:component>
+        <set-payload value="I'm in Books flow. Invoked at #[server.dateTime.format(&quot;HH:mm:ss:SSS&quot;)]" doc:name="Set Payload"/>
+        <logger message="In Books flow logger" level="INFO" doc:name="Logger"/>
+        <scripting:component doc:name="Groovy">
+            <scripting:script engine="Groovy"><![CDATA[throw new IllegalArgumentException('New Exception')]]></scripting:script>
+        </scripting:component>
+        <logger message="After groovy exception" level="INFO" doc:name="Logger"/>
+<!--         <catch-exception-strategy doc:name="Catch Exception Strategy"> -->
+<!--             <logger message="I'm in error handling of books flow" level="INFO" doc:name="Logger"/> -->
+<!--         </catch-exception-strategy> -->
+    </flow>
+    <flow name="Cars">
+        <set-payload value="I'm in Cars  flow. Invoked at #[server.dateTime.format(&quot;HH:mm:ss:SSS&quot;)]" doc:name="Set Payload"/>
+        <logger message="In Cars flow logger" level="INFO" doc:name="Logger"/>
+    </flow>
+    <flow name="scatter-gatherFlow">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/sge/*" doc:name="HTTP"/>
+        <logger message="Invoked the flow at #[server.dateTime.format(&quot;HH:mm:ss:SSS&quot;)]" level="INFO" doc:name="Logger"/>
+        <scatter-gather doc:name="Scatter-Gather">
+            <processor-chain>
+                <logger message="Cars flow Invoked at #[server.dateTime.format(&quot;HH:mm:ss:SSS&quot;)]" level="INFO" doc:name="Logger"/>
+                <flow-ref name="Cars" doc:name="Cars"/>
+            </processor-chain>
+            <processor-chain>
+                <logger message="Books flow Invoked at #[server.dateTime.format(&quot;HH:mm:ss:SSS&quot;)]" level="INFO" doc:name="Logger"/>
+                <flow-ref name="Books" doc:name="Books"/>
+            </processor-chain>
+        </scatter-gather>
+        <logger message="After scatter gatther #[payload] and #[message.exception]" level="INFO" doc:name="Logger"/>
+        <object-to-string-transformer doc:name="Object to String"/>
+        
+        <catch-exception-strategy doc:name="Catch Exception Strategy">
+            <logger message="I'm in error handling of main flow" level="INFO" doc:name="Logger"/>
+        </catch-exception-strategy>
+    </flow>
+</mule>
